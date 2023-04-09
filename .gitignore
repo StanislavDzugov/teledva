@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+.idea/
+venv/
+
+static/
+media/
+
+/setenv.*
+.local_env
+requirements_upd.txt
+db_dump/
+budger.conf
+letsencrypt/
+certbot/
+docker-compose-dev.yml
+Dockerfile-dev

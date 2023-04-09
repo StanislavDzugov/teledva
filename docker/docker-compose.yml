@@ -1,0 +1,94 @@
+version: '3'
+
+volumes:
+  teledva-postgres_data:
+
+services:
+  teledvaapp:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    container_name: teledva
+    volumes:
+      - ../teledva:/app/
+      - ../teledva/static:/app/static
+      - ../teledva/media:/app/media
+    env_file: ../.env
+    restart: always
+    command: gunicorn --reload --workers 1 teledva.wsgi:application --bind 0.0.0.0:8000 --access-logfile - --error-logfile - --log-level debug
+    expose:
+      - 8000
+  
+  teledva-db:
+    image: postgres:13-alpine
+    restart: unless-stopped
+    container_name: teledva-db
+    ports:
+      - "5432:5432"
+    volumes:
+      - teledva-postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=teledva
+      - POSTGRES_PASSWORD=123qweQWE
+      - POSTGRES_DATABASE=teledva
+  
+  nginx-teledva:
+    build: ./nginx
+    container_name: nginx-teledva
+    volumes:
+      - ../teledva/static:/app/static
+      - ../teledva/media:/app/media
+      - ../client2:/app/client2
+      - ./nginx/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - teledvaapp
+    ports:
+      - 80:80
+      - 443:443
+  
+  pgadmin-teledva:
+    container_name: pgadmin4_teledva
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
+
+  redis:
+    image: redis:alpine
+
+  celery-teledva:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    command: python manage.py celery_worker
+    restart: always
+    volumes:
+      - ../teledva:/app
+    env_file: ../.env
+    depends_on:
+      - teledva-db
+      - redis
+
+  celery-beat-teledva:
+    build:
+      context: ../
+      dockerfile: ./docker/Dockerfile
+    command: python manage.py celery_beat_worker
+    restart: always
+    volumes:
+      - ../teledva:/app
+    env_file: ../.env
+    depends_on:
+      - teledva-db
+      - redis
+  
+  flower:
+    image: mher/flower:0.9.5
+    command: ['flower', '--url-prefix=flower', '--broker=redis://redis:6379', '--port=5555']
+    expose:
+      - 5555
+    depends_on:
+      - redis
