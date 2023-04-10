@@ -22,11 +22,10 @@ class CustomUserManager(UserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
-        tele2 = Company.objects.filter(inn=9909005588).first()
+        tele2 = Company.objects.filter(name="tele2").first()
         if not tele2:
             tele2 = Company(
-                name='tele2', inn=9909005588,
-                address='121099, Москва, Новинский бульвар, д.8'
+                name='tele2', address='121099, Москва, Новинский бульвар, д.8'
             )
             tele2.save()
         extra_fields['company'] = tele2
